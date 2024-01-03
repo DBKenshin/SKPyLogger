@@ -2,7 +2,7 @@ import configparser, pymysql.cursors
 
 config = configparser.ConfigParser()
 config.read('config.ini')
-mySqlAddress = config['MYSQL']['mysqldbaddress'] + ":" + config['MYSQL']['mysqldbport']
+mySqlAddress = config['MYSQL']['mysqldbaddress']
 mySqlUser = config['MYSQL']['mysqldbuser']
 mySqlPassword = config['MYSQL']['mysqldbpassword']
 mySqlDb = config['MYSQL']['mysqldbdb']
