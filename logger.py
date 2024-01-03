@@ -22,12 +22,12 @@ async def periodicLogging():
                 latestEntryTime = 0
             currentTime = datetime.date.today()
             if (currentTime - latestEntryTime) > logFreq:
-                await logger(regular_entry=True)
+                logger(regular_entry=True)
             else:
                 timeToSleep = logFreq - (currentTime - latestEntryTime)
                 timeToSleepInSeconds = int(datetime.time.second(timeToSleep))
                 asyncio.sleep(timeToSleepInSeconds)
-                await logger(regular_entry=True)
+                logger(regular_entry=True)
             
 def logger(comment:str, regular_entry=False):
     print("logging!")
