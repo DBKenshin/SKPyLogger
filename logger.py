@@ -13,6 +13,7 @@ loggingFrequency = config['LOGGER']['loggingfreq']
 logFreq = timedelta(minutes=int(loggingFrequency))
 
 async def periodicLogging():
+    print("initializing periodic logging")
     dbconnection = await mysqldbconnection()
     with dbconnection:
         with dbconnection.cursor() as cursor:
@@ -29,6 +30,7 @@ async def periodicLogging():
                 await logger(regular_entry=True)
             
 async def logger(comment:str, regular_entry=False):
+    print("logging!")
     dbconnection = await mysqldbconnection()
     if comment == None:
         comment = ""

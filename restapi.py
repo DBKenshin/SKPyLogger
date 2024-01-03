@@ -11,6 +11,7 @@ mySqlDb = config['MYSQL']['mysqldbdb']
 
 async def restapi():
     app = Flask(__name__)
+    print("REST API started up")
 
     @app.get("/recent")
     async def get_recent():
