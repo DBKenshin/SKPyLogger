@@ -42,8 +42,8 @@ def logger(comment:str, regular_entry=False):
         return(err)
 
     first = True
-    columns = "("
-    values = "VALUES('"
+    columns = "(comment,"
+    values = "VALUES('" + comment + "', '"
         
     for row in config.options('SIGNALKPATHS'):
         if first:
