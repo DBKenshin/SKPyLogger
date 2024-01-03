@@ -7,7 +7,7 @@ mySqlUser = config['MYSQL']['mysqldbuser']
 mySqlPassword = config['MYSQL']['mysqldbpassword']
 mySqlDb = config['MYSQL']['mysqldbdb']
 
-async def mySqlDBConnection():
+def mySqlDBConnection():
     try:
         dbconnection = pymysql.connect(
             user=mySqlUser,

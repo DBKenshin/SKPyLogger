@@ -14,9 +14,9 @@ logFreq = timedelta(minutes=int(loggingFrequency))
 
 async def periodicLogging():
     print("initializing periodic logging")
-    dbconnection = await mysqldbconnection()
-    async with dbconnection:
-        async with dbconnection.cursor() as cursor:
+    dbconnection = mysqldbconnection.mySqlDBConnection()
+    with dbconnection:
+        with dbconnection.cursor() as cursor:
             latestEntryTime = datetime.date.fromtimestamp(cursor.execute("SELECT timestamp FROM log_entry WHERE regular_entry = TRUE ORDER BY timestamp DESC LIMIT 1"))
             if latestEntryTime == None:
                 latestEntryTime = 0
@@ -29,9 +29,9 @@ async def periodicLogging():
                 asyncio.sleep(timeToSleepInSeconds)
                 await logger(regular_entry=True)
             
-async def logger(comment:str, regular_entry=False):
+def logger(comment:str, regular_entry=False):
     print("logging!")
-    dbconnection = await mysqldbconnection()
+    dbconnection = mysqldbconnection.mySqlDBConnection()
     if comment == None:
         comment = ""
 
@@ -63,9 +63,9 @@ async def logger(comment:str, regular_entry=False):
     columns = columns + ")"
     values = values + "')"
     logSQLstatement = "INSERT INTO current_log" + columns + " " + values
-    async with dbconnection:
-        async with dbconnection.cursor() as cursor:
-            result = await cursor.execute(logSQLstatement)
+    with dbconnection:
+        with dbconnection.cursor() as cursor:
+            result = cursor.execute(logSQLstatement)
             return result
 
 

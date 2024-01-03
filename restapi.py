@@ -16,7 +16,7 @@ async def restapi():
     @app.get("/recent")
     async def get_recent():
         # Returns in JSON the most recent log entry
-        dbconnection = mysqldbconnection()
+        dbconnection = mysqldbconnection.mySqlDBConnection()
         async with dbconnection:
             with dbconnection.cursor(dictionary=True) as cursor:
                 result = cursor.execute("SELECT * FROM log_entry ORDER BY timestamp DESC LIMIT 1")
@@ -27,7 +27,7 @@ async def restapi():
         # Adds/replaces text in Comments field of most recent log entry, takes JSON
         if request.is_json:
             comment = request.form.get('comment', default="", type=str)
-            dbconnection = mysqldbconnection()
+            dbconnection = mysqldbconnection.mySqlDBConnection()
             async with dbconnection:
                 with dbconnection.cursor(dictionary=True) as cursor:
                     timestamp = cursor.execute("SELECT timestamp FROM log_entry ORDER BY timestamp DESC LIMIT 1")
@@ -40,7 +40,7 @@ async def restapi():
         # Appends text to end of the most recent log entry’s Comments field, takes JSON
         if request.is_json:
             comment = request.form.get('comment', default="", type=str)
-            dbconnection = mysqldbconnection()
+            dbconnection = mysqldbconnection.mySqlDBConnection()
             async with dbconnection:
                 with dbconnection.cursor(dictionary=True) as cursor:
                     timestamp = cursor.execute("SELECT timestamp FROM log_entry ORDER BY timestamp DESC LIMIT 1")
@@ -53,7 +53,7 @@ async def restapi():
     @app.get("/timestamp/<float:time>/<int:rows>")
     async def get_timestamp(time: float, rows: int):
         # Returns in JSON the number r entries at and immediately prior to time t
-        dbconnection = mysqldbconnection()
+        dbconnection = mysqldbconnection.mySqlDBConnection()
         async with dbconnection:
             with dbconnection.cursor(dictionary=True) as cursor:
                 result = cursor.execute("SELECT * FROM log_entry WHERE timestamp <= " + str(time) + "ORDER BY timestamp DESC LIMIT " + str(rows))
@@ -64,7 +64,7 @@ async def restapi():
         # Appends text to the end of the log entry with time t (exact value required), takes JSON
         if request.is_json:
             comment = request.form.get('comment', default="", type=str)
-            dbconnection = mysqldbconnection()
+            dbconnection = mysqldbconnection.mySqlDBConnection()
             async with dbconnection:
                 with dbconnection.cursor(dictionary=True) as cursor:
                     existingComment = cursor.execute("SELECT comment FROM log_entry WHERE timestamp = " + time)
