@@ -17,7 +17,7 @@ async def restapi():
     async def get_recent():
         # Returns in JSON the most recent log entry
         dbconnection = mysqldbconnection()
-        with dbconnection:
+        async with dbconnection:
             with dbconnection.cursor(dictionary=True) as cursor:
                 result = cursor.execute("SELECT * FROM log_entry ORDER BY timestamp DESC LIMIT 1")
                 return jsonify(result)
@@ -28,7 +28,7 @@ async def restapi():
         if request.is_json:
             comment = request.form.get('comment', default="", type=str)
             dbconnection = mysqldbconnection()
-            with dbconnection:
+            async with dbconnection:
                 with dbconnection.cursor(dictionary=True) as cursor:
                     timestamp = cursor.execute("SELECT timestamp FROM log_entry ORDER BY timestamp DESC LIMIT 1")
                     result = cursor.execute("UPDATE log_entry SET comment = '" + comment + "' WHERE timestamp = " + timestamp)
@@ -41,7 +41,7 @@ async def restapi():
         if request.is_json:
             comment = request.form.get('comment', default="", type=str)
             dbconnection = mysqldbconnection()
-            with dbconnection:
+            async with dbconnection:
                 with dbconnection.cursor(dictionary=True) as cursor:
                     timestamp = cursor.execute("SELECT timestamp FROM log_entry ORDER BY timestamp DESC LIMIT 1")
                     existingComment = cursor.execute("SELECT comment FROM log_entry ORDER BY timestamp DESC LIMIT 1")
@@ -54,7 +54,7 @@ async def restapi():
     async def get_timestamp(time: float, rows: int):
         # Returns in JSON the number r entries at and immediately prior to time t
         dbconnection = mysqldbconnection()
-        with dbconnection:
+        async with dbconnection:
             with dbconnection.cursor(dictionary=True) as cursor:
                 result = cursor.execute("SELECT * FROM log_entry WHERE timestamp <= " + str(time) + "ORDER BY timestamp DESC LIMIT " + str(rows))
                 return jsonify(result)
@@ -65,7 +65,7 @@ async def restapi():
         if request.is_json:
             comment = request.form.get('comment', default="", type=str)
             dbconnection = mysqldbconnection()
-            with dbconnection:
+            async with dbconnection:
                 with dbconnection.cursor(dictionary=True) as cursor:
                     existingComment = cursor.execute("SELECT comment FROM log_entry WHERE timestamp = " + time)
                     newComment = existingComment + " |Appended comment " + str(datetime.datetime.now()) + "| " + comment
