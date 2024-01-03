@@ -10,8 +10,8 @@ mySqlPassword = config['MYSQL']['mysqldbpassword']
 mySqlDb = config['MYSQL']['mysqldbdb']
 
 async def restapi():
+    print("REST API starting up")
     app = Flask(__name__)
-    print("REST API started up")
 
     @app.get("/recent")
     async def get_recent():
