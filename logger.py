@@ -1,5 +1,5 @@
-import configparser, datetime, mysqldbconnection, asyncio
-from datetime import timedelta
+import configparser, datetime, mysqldbconnection, asyncio, json
+from datetime import timedelta, timezone
 import requests
 
 config = configparser.ConfigParser()
@@ -13,24 +13,32 @@ loggingFrequency = config['LOGGER']['loggingfreq']
 logFreq = timedelta(minutes=int(loggingFrequency))
 
 async def periodicLogging():
-    print("initializing periodic logging")
+    print("Initializing periodic logging...")
     dbconnection = mysqldbconnection.mySqlDBConnection()
     with dbconnection:
         with dbconnection.cursor() as cursor:
-            latestEntryTime = datetime.date.fromtimestamp(cursor.execute("SELECT timestamp FROM log_entry WHERE regular_entry = TRUE ORDER BY timestamp DESC LIMIT 1"))
-            if latestEntryTime == None:
-                latestEntryTime = 0
-            currentTime = datetime.date.today()
-            if (currentTime - latestEntryTime) > logFreq:
+            cursor.execute("SELECT timestamp FROM log_entry WHERE regular_entry = TRUE ORDER BY timestamp DESC LIMIT 1")
+            latestEntryTime = cursor.fetchone()['timestamp']
+            latestEntryTime = latestEntryTime.replace(tzinfo=timezone.utc).astimezone(tz=timezone.utc)
+            print("Last log entry at:")
+            print(latestEntryTime)
+            currentTime = datetime.datetime.now()
+            currentTime = currentTime.replace(tzinfo=None).astimezone(tz=timezone.utc)
+            print("Current time in UTC is:")
+            print(currentTime)
+            timediff = currentTime - latestEntryTime
+            if timediff > logFreq:
+                print("It has been " + str(timediff) + " since the last log entry")
                 logger(regular_entry=True)
             else:
                 timeToSleep = logFreq - (currentTime - latestEntryTime)
-                timeToSleepInSeconds = int(datetime.time.second(timeToSleep))
-                asyncio.sleep(timeToSleepInSeconds)
+                timeToSleepSeconds = int(timeToSleep.total_seconds())
+                print("Logger thread sleeping for " + str(timeToSleepSeconds) + "s")
+                await asyncio.sleep(timeToSleepSeconds)
                 logger(regular_entry=True)
             
 def logger(comment="", regular_entry=False):
-    print("logging!")
+    print("Writing a log...")
     dbconnection = mysqldbconnection.mySqlDBConnection()
     if comment == None:
         comment = ""
@@ -38,6 +46,7 @@ def logger(comment="", regular_entry=False):
     try:
         signalKAPIResponse = requests.get(signalKServerAddress + "/signalk")
         signalKAPIAddress = signalKAPIResponse.json()['endpoints']['v1']['signalk-http'] + "vessels/self/"
+        print("SignalK server contacted, API address is " + signalKAPIAddress)
     except requests.ConnectionError as err:
         return(err)
 
@@ -52,22 +61,32 @@ def logger(comment="", regular_entry=False):
             columns = columns + ", "
             values = values + "', '"
         columns = columns + row
-        values = values + signalKAPIFetch(signalKAPIAddress, config['SIGNALKPATHS'][row])
+        value_buffer = str(signalKAPIFetch(signalKAPIAddress, config['SIGNALKPATHS'][row]))
+        if "timestamp" in row:
+            value_buffer = str(datetime.datetime.fromisoformat(value_buffer).strftime("%Y-%m-%d %H:%M:%S"))
+        if "position" in row:
+            value_buffer = json.dumps(value_buffer).replace("'", '"')
+        if "attitude" in row:
+            value_buffer = json.dumps(value_buffer).replace("'", '"')
+
+        values = values + value_buffer
 
     if regular_entry:
         columns = columns + ", regular_entry"
-        values = values + ", TRUE"
+        values = values + "', TRUE"
     else:
         columns = columns + ", regular_entry"
-        values = values + ", FALSE"
+        values = values + "', FALSE"
     columns = columns + ")"
-    values = values + "')"
-    logSQLstatement = "INSERT INTO current_log" + columns + " " + values
+    values = values + ")"
+    logSQLstatement = "INSERT INTO log_entry" + columns + " " + values
     with dbconnection:
         with dbconnection.cursor() as cursor:
+            print("Executing the following SQL statement:")
+            print(logSQLstatement)
             result = cursor.execute(logSQLstatement)
+            print(result)
             return result
-
 
 def signalKAPIFetch(api:str,parameter:str):
     response = requests.get(api + parameter.replace(".", "/"))

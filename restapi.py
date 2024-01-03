@@ -10,7 +10,7 @@ mySqlPassword = config['MYSQL']['mysqldbpassword']
 mySqlDb = config['MYSQL']['mysqldbdb']
 
 async def restapi():
-    print("REST API starting up")
+    print("REST API starting up...")
     app = Flask(__name__)
 
     @app.get("/recent")
@@ -19,7 +19,8 @@ async def restapi():
         dbconnection = mysqldbconnection.mySqlDBConnection()
         async with dbconnection:
             with dbconnection.cursor(dictionary=True) as cursor:
-                result = cursor.execute("SELECT * FROM log_entry ORDER BY timestamp DESC LIMIT 1")
+                cursor.execute("SELECT * FROM log_entry ORDER BY timestamp DESC LIMIT 1")
+                result = cursor.fetchone()
                 return jsonify(result)
 
     @app.put("/recent")
@@ -30,8 +31,9 @@ async def restapi():
             dbconnection = mysqldbconnection.mySqlDBConnection()
             async with dbconnection:
                 with dbconnection.cursor(dictionary=True) as cursor:
-                    timestamp = cursor.execute("SELECT timestamp FROM log_entry ORDER BY timestamp DESC LIMIT 1")
-                    result = cursor.execute("UPDATE log_entry SET comment = '" + comment + "' WHERE timestamp = " + timestamp)
+                    cursor.execute("SELECT entry_id FROM log_entry ORDER BY timestamp DESC LIMIT 1")
+                    entry_id = cursor.fetchone()
+                    result = cursor.execute("UPDATE log_entry SET comment = '" + comment + "' WHERE entry_id = " + entry_id)
                     return jsonify(result)
         return {"error": "Request must be JSON"}, 415
 
@@ -43,10 +45,12 @@ async def restapi():
             dbconnection = mysqldbconnection.mySqlDBConnection()
             async with dbconnection:
                 with dbconnection.cursor(dictionary=True) as cursor:
-                    timestamp = cursor.execute("SELECT timestamp FROM log_entry ORDER BY timestamp DESC LIMIT 1")
-                    existingComment = cursor.execute("SELECT comment FROM log_entry ORDER BY timestamp DESC LIMIT 1")
+                    cursor.execute("SELECT entry_id FROM log_entry ORDER BY timestamp DESC LIMIT 1")
+                    entry_id = cursor.fetchone()
+                    cursor.execute("SELECT comment FROM log_entry ORDER BY timestamp DESC LIMIT 1")
+                    existingComment = cursor.fetchone()
                     newComment = existingComment + " |Appended comment " + datetime.datetime.now() + "| " + comment
-                    result = cursor.execute("UPDATE log_entry SET comment = '" + newComment + "' WHERE timestamp = " + timestamp)
+                    result = cursor.execute("UPDATE log_entry SET comment = '" + newComment + "' WHERE entry_id = " + entry_id)
                     return jsonify(result)
         return {"error": "Request must be JSON"}, 415
 
@@ -56,20 +60,23 @@ async def restapi():
         dbconnection = mysqldbconnection.mySqlDBConnection()
         async with dbconnection:
             with dbconnection.cursor(dictionary=True) as cursor:
-                result = cursor.execute("SELECT * FROM log_entry WHERE timestamp <= " + str(time) + "ORDER BY timestamp DESC LIMIT " + str(rows))
+                cursor.execute("SELECT * FROM log_entry WHERE timestamp <= " + str(time) + "ORDER BY timestamp DESC LIMIT " + str(rows))
+                result = cursor.fetchone()
                 return jsonify(result)
 
-    @app.post("/timestamp/<float:time>")
-    async def post_timestamp(time: float):
-        # Appends text to the end of the log entry with time t (exact value required), takes JSON
+    @app.post("/entry_id/<int:entry_id>")
+    async def post_entry_id(entry_id: int):
+        # Appends text to the end of the log entry with entry_id (int), takes JSON
         if request.is_json:
             comment = request.form.get('comment', default="", type=str)
             dbconnection = mysqldbconnection.mySqlDBConnection()
             async with dbconnection:
                 with dbconnection.cursor(dictionary=True) as cursor:
-                    existingComment = cursor.execute("SELECT comment FROM log_entry WHERE timestamp = " + time)
+                    cursor.execute("SELECT comment FROM log_entry WHERE entry_id = " + entry_id)
+                    existingComment = cursor.fetchone()
                     newComment = existingComment + " |Appended comment " + str(datetime.datetime.now()) + "| " + comment
-                    result = cursor.execute("UPDATE log_entry SET comment = '" + newComment + "' WHERE timestamp = " + time)
+                    cursor.execute("UPDATE log_entry SET comment = '" + newComment + "' WHERE entry_id = " + entry_id)
+                    result = cursor.fetchone()
                     return jsonify(result)
         return {"error": "Request must be JSON"}, 415
 
