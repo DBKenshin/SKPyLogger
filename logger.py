@@ -1,4 +1,4 @@
-import configparser, datetime, mysqldbconnection, asyncio, json
+import configparser, datetime, mysqldbconnection, asyncio, json, time
 from datetime import timedelta, timezone
 import requests
 
@@ -14,28 +14,30 @@ logFreq = timedelta(minutes=int(loggingFrequency))
 
 async def periodicLogging():
     print("Initializing periodic logging...")
-    dbconnection = mysqldbconnection.mySqlDBConnection()
-    with dbconnection:
-        with dbconnection.cursor() as cursor:
-            cursor.execute("SELECT timestamp FROM log_entry WHERE regular_entry = TRUE ORDER BY timestamp DESC LIMIT 1")
-            latestEntryTime = cursor.fetchone()['timestamp']
-            latestEntryTime = latestEntryTime.replace(tzinfo=timezone.utc).astimezone(tz=timezone.utc)
-            print("Last log entry at:")
-            print(latestEntryTime)
-            currentTime = datetime.datetime.now()
-            currentTime = currentTime.replace(tzinfo=None).astimezone(tz=timezone.utc)
-            print("Current time in UTC is:")
-            print(currentTime)
-            timediff = currentTime - latestEntryTime
-            if timediff > logFreq:
-                print("It has been " + str(timediff) + " since the last log entry")
-                logger(regular_entry=True)
-            else:
-                timeToSleep = logFreq - (currentTime - latestEntryTime)
-                timeToSleepSeconds = int(timeToSleep.total_seconds())
-                print("Logger thread sleeping for " + str(timeToSleepSeconds) + "s")
-                await asyncio.sleep(timeToSleepSeconds)
-                logger(regular_entry=True)
+    while True: # run forever
+        dbconnection = mysqldbconnection.mySqlDBConnection()
+        with dbconnection:
+            with dbconnection.cursor() as cursor:
+                cursor.execute("SELECT timestamp FROM log_entry WHERE regular_entry = TRUE ORDER BY timestamp DESC LIMIT 1")
+                latestEntryTime = cursor.fetchone()['timestamp']
+                latestEntryTime = latestEntryTime.replace(tzinfo=timezone.utc).astimezone(tz=timezone.utc)
+                print("Last log entry at:")
+                print(latestEntryTime)
+                currentTime = datetime.datetime.now()
+                currentTime = currentTime.replace(tzinfo=None).astimezone(tz=timezone.utc)
+                print("Current time in UTC is:")
+                print(currentTime)
+                timediff = currentTime - latestEntryTime
+                if timediff > logFreq:
+                    print("It has been " + str(timediff) + " since the last log entry")
+                    logger(regular_entry=True)
+                else:
+                    timeToSleep = logFreq - (currentTime - latestEntryTime)
+                    timeToSleepSeconds = int(timeToSleep.total_seconds())
+                    print("Logger thread sleeping for " + str(timeToSleepSeconds) + "s")
+                    #await asyncio.sleep(timeToSleepSeconds)
+                    time.sleep(timeToSleepSeconds)
+                    logger(regular_entry=True)
             
 def logger(comment="", regular_entry=False):
     print("Writing a log...")
