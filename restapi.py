@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import request, jsonify
 import configparser, datetime, logger, mysqldbconnection
 
 config = configparser.ConfigParser()
@@ -9,9 +9,8 @@ mySqlUser = config['MYSQL']['mysqldbuser']
 mySqlPassword = config['MYSQL']['mysqldbpassword']
 mySqlDb = config['MYSQL']['mysqldbdb']
 
-async def restapi():
+async def restapi(app):
     print("REST API starting up...")
-    app = Flask(__name__)
 
     @app.get("/recent")
     async def get_recent():
