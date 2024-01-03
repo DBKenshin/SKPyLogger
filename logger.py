@@ -29,7 +29,7 @@ async def periodicLogging():
                 asyncio.sleep(timeToSleepInSeconds)
                 logger(regular_entry=True)
             
-def logger(comment:str, regular_entry=False):
+def logger(comment="", regular_entry=False):
     print("logging!")
     dbconnection = mysqldbconnection.mySqlDBConnection()
     if comment == None:
