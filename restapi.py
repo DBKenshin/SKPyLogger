@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-import configparser, mySqlConnection, datetime, logger
+import configparser, datetime, logger, pymysql.cursors
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -9,13 +9,14 @@ mySqlUser = config['MYSQL']['mysqldbuser']
 mySqlPassword = config['MYSQL']['mysqldbpassword']
 mySqlDb = config['MYSQL']['mysqldbdb']
 
-config = {
-        'user': mySqlUser,
-        'password': mySqlPassword,
-        'host': mySqlAddress,
-        'database': mySqlDb,
-        'raise_on_warnings': True
-    }
+dbconnection = pymysql.connect(
+    user=mySqlUser,
+    password=mySqlPassword,
+    host=mySqlAddress,
+    database=mySqlDb,
+    cursorclass=pymysql.cursors.DictCursor,
+    autocommit=True
+    )
 
 async def restapi():
     app = Flask(__name__)
@@ -23,9 +24,8 @@ async def restapi():
     @app.get("/recent")
     def get_recent():
         # Returns in JSON the most recent log entry
-        connection = mySqlConnection(config)
-        if connection and connection.is_connected():
-            with connection.cursor(dictionary=True) as cursor:
+        with dbconnection:
+            with dbconnection.cursor(dictionary=True) as cursor:
                 result = cursor.execute("SELECT * FROM log_entry ORDER BY timestamp DESC LIMIT 1")
                 return jsonify(result)
 
@@ -34,9 +34,8 @@ async def restapi():
         # Adds/replaces text in Comments field of most recent log entry, takes JSON
         if request.is_json:
             comment = request.form.get('comment', default="", type=str)
-            connection = mySqlConnection(config)
-            if connection and connection.is_connected():
-                with connection.cursor(dictionary=True) as cursor:
+            with dbconnection:
+                with dbconnection.cursor(dictionary=True) as cursor:
                     timestamp = cursor.execute("SELECT timestamp FROM log_entry ORDER BY timestamp DESC LIMIT 1")
                     result = cursor.execute("UPDATE log_entry SET comment = '" + comment + "' WHERE timestamp = " + timestamp)
                     return jsonify(result)
@@ -47,9 +46,8 @@ async def restapi():
         # Appends text to end of the most recent log entry’s Comments field, takes JSON
         if request.is_json:
             comment = request.form.get('comment', default="", type=str)
-            connection = mySqlConnection(config)
-            if connection and connection.is_connected():
-                with connection.cursor(dictionary=True) as cursor:
+            with dbconnection:
+                with dbconnection.cursor(dictionary=True) as cursor:
                     timestamp = cursor.execute("SELECT timestamp FROM log_entry ORDER BY timestamp DESC LIMIT 1")
                     existingComment = cursor.execute("SELECT comment FROM log_entry ORDER BY timestamp DESC LIMIT 1")
                     newComment = existingComment + " |Appended comment " + datetime.datetime.now() + "| " + comment
@@ -60,9 +58,8 @@ async def restapi():
     @app.get("/timestamp/<float:time>/<int:rows>")
     def get_timestamp(time: float, rows: int):
         # Returns in JSON the number r entries at and immediately prior to time t
-        connection = mySqlConnection(config)
-        if connection and connection.is_connected():
-            with connection.cursor(dictionary=True) as cursor:
+        with dbconnection:
+            with dbconnection.cursor(dictionary=True) as cursor:
                 result = cursor.execute("SELECT * FROM log_entry WHERE timestamp <= " + str(time) + "ORDER BY timestamp DESC LIMIT " + str(rows))
                 return jsonify(result)
 
@@ -71,9 +68,8 @@ async def restapi():
         # Appends text to the end of the log entry with time t (exact value required), takes JSON
         if request.is_json:
             comment = request.form.get('comment', default="", type=str)
-            connection = mySqlConnection(config)
-            if connection and connection.is_connected():
-                with connection.cursor(dictionary=True) as cursor:
+            with dbconnection:
+                with dbconnection.cursor(dictionary=True) as cursor:
                     existingComment = cursor.execute("SELECT comment FROM log_entry WHERE timestamp = " + time)
                     newComment = existingComment + " |Appended comment " + str(datetime.datetime.now()) + "| " + comment
                     result = cursor.execute("UPDATE log_entry SET comment = '" + newComment + "' WHERE timestamp = " + time)

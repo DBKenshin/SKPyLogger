@@ -1,4 +1,4 @@
-import configparser, mySqlConnection, datetime, time, asyncio
+import configparser, pymysql.cursors, datetime, time, asyncio
 from datetime import timedelta
 import requests
 
@@ -12,18 +12,18 @@ mySqlDb = config['MYSQL']['mysqldbdb']
 loggingFrequency = config['LOGGER']['loggingfreq']
 logFreq = timedelta(minutes=int(loggingFrequency))
 
-config = {
-        'user': mySqlUser,
-        'password': mySqlPassword,
-        'host': mySqlAddress,
-        'database': mySqlDb,
-        'raise_on_warnings': True
-    }
+dbconnection = pymysql.connect(
+    user=mySqlUser,
+    password=mySqlPassword,
+    host=mySqlAddress,
+    database=mySqlDb,
+    cursorclass=pymysql.cursors.DictCursor,
+    autocommit=True
+    )
 
 async def periodicLogging():
-    connection = mySqlConnection(config)
-    if connection and connection.is_connected():
-        with connection.cursor(dictionary=True) as cursor:
+    with dbconnection:
+        with dbconnection.cursor() as cursor:
             latestEntryTime = datetime.date.fromtimestamp(cursor.execute("SELECT timestamp FROM log_entry WHERE regular_entry = TRUE ORDER BY timestamp DESC LIMIT 1"))
             if latestEntryTime == None:
                 latestEntryTime = 0
@@ -35,8 +35,6 @@ async def periodicLogging():
                 timeToSleepInSeconds = int(datetime.time.second(timeToSleep))
                 asyncio.sleep(timeToSleepInSeconds)
                 logger(regular_entry=True)
-    else:
-        print("No database connection, logging disabled!")
             
 def logger(comment:str, regular_entry=False):
 
@@ -71,9 +69,8 @@ def logger(comment:str, regular_entry=False):
     columns = columns + ")"
     values = values + "')"
     logSQLstatement = "INSERT INTO current_log" + columns + " " + values
-    connection = mySqlConnection(config)
-    if connection and connection.is_connected():
-        with connection.cursor(dictionary=True) as cursor:
+    with dbconnection:
+        with dbconnection.cursor() as cursor:
             result = cursor.execute(logSQLstatement)
             return result
 
