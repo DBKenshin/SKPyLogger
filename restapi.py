@@ -92,3 +92,5 @@ async def restapi(app):
     async def get_signalk():
         # returns the address of the SignalK server being used
         return signalKServerAddress
+    
+    return app

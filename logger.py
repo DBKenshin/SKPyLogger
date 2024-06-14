@@ -93,3 +93,25 @@ def logger(comment="", regular_entry=False):
 def signalKAPIFetch(api:str,parameter:str):
     response = requests.get(api + parameter.replace(".", "/"))
     return response.json()['value']
+
+def returnSKAPIvalues():
+    try:
+        signalKAPIResponse = requests.get(signalKServerAddress + "/signalk")
+        signalKAPIAddress = signalKAPIResponse.json()['endpoints']['v1']['signalk-http'] + "vessels/self/"
+        print("SignalK server contacted, API address is " + signalKAPIAddress)
+    except requests.ConnectionError as err:
+        return(err)
+    
+    values = ""
+    for row in config.options('SIGNALKPATHS'):
+
+        value_buffer = str(signalKAPIFetch(signalKAPIAddress, config['SIGNALKPATHS'][row]))
+        if "timestamp" in row:
+            value_buffer = str(datetime.datetime.fromisoformat(value_buffer).strftime("%Y-%m-%d %H:%M:%S"))
+        if "position" in row:
+            value_buffer = json.dumps(value_buffer).replace("'", '"')
+        if "attitude" in row:
+            value_buffer = json.dumps(value_buffer).replace("'", '"')
+
+        values = values + value_buffer
+    return values
