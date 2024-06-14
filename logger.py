@@ -28,15 +28,15 @@ async def periodicLogging():
                 print("Current time in UTC is:")
                 print(currentTime)
                 timediff = currentTime - latestEntryTime
-                if timediff > logFreq:
+                if timediff >= logFreq:
                     print("It has been " + str(timediff) + " since the last log entry")
                     logger(regular_entry=True)
                 else:
                     timeToSleep = logFreq - (currentTime - latestEntryTime)
                     timeToSleepSeconds = int(timeToSleep.total_seconds())
                     print("Logger thread sleeping for " + str(timeToSleepSeconds) + "s")
-                    #await asyncio.sleep(timeToSleepSeconds)
-                    time.sleep(timeToSleepSeconds)
+                    await asyncio.sleep(timeToSleepSeconds)
+                    #time.sleep(timeToSleepSeconds)
                     logger(regular_entry=True)
             
 def logger(comment="", regular_entry=False):
@@ -56,6 +56,8 @@ def logger(comment="", regular_entry=False):
     columns = "(comment,"
     values = "VALUES('" + comment + "', '"
         
+    #TODO: instead of making multiple calls, just get the entire json dump from signalKAPIAddress and parse it here
+    #TODO: Probably much faster since the SignalK server can be a little bit slow with each response
     for row in config.options('SIGNALKPATHS'):
         if first:
             first = False
@@ -93,25 +95,3 @@ def logger(comment="", regular_entry=False):
 def signalKAPIFetch(api:str,parameter:str):
     response = requests.get(api + parameter.replace(".", "/"))
     return response.json()['value']
-
-def returnSKAPIvalues():
-    try:
-        signalKAPIResponse = requests.get(signalKServerAddress + "/signalk")
-        signalKAPIAddress = signalKAPIResponse.json()['endpoints']['v1']['signalk-http'] + "vessels/self/"
-        print("SignalK server contacted, API address is " + signalKAPIAddress)
-    except requests.ConnectionError as err:
-        return(err)
-    
-    values = ""
-    for row in config.options('SIGNALKPATHS'):
-
-        value_buffer = str(signalKAPIFetch(signalKAPIAddress, config['SIGNALKPATHS'][row]))
-        if "timestamp" in row:
-            value_buffer = str(datetime.datetime.fromisoformat(value_buffer).strftime("%Y-%m-%d %H:%M:%S"))
-        if "position" in row:
-            value_buffer = json.dumps(value_buffer).replace("'", '"')
-        if "attitude" in row:
-            value_buffer = json.dumps(value_buffer).replace("'", '"')
-
-        values = values + value_buffer
-    return values
