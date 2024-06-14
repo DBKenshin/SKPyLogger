@@ -58,6 +58,8 @@ def logger(comment="", regular_entry=False):
         
     #TODO: instead of making multiple calls, just get the entire json dump from signalKAPIAddress and parse it here
     #TODO: Probably much faster since the SignalK server can be a little bit slow with each response
+    signal_k_dump = signalKAPIFetch(signalKAPIAddress)
+
     for row in config.options('SIGNALKPATHS'):
         if first:
             first = False
@@ -65,7 +67,7 @@ def logger(comment="", regular_entry=False):
             columns = columns + ", "
             values = values + "', '"
         columns = columns + row
-        value_buffer = str(signalKAPIFetch(signalKAPIAddress, config['SIGNALKPATHS'][row]))
+        value_buffer = signal_k_dump[row]
         if "timestamp" in row:
             value_buffer = str(datetime.datetime.fromisoformat(value_buffer).strftime("%Y-%m-%d %H:%M:%S"))
         if "position" in row:
@@ -92,6 +94,12 @@ def logger(comment="", regular_entry=False):
             print(result)
             return result
 
+def signalKAPIFetch(api:str):
+    #get the entire dump from SK
+    response = requests.get(api)
+    return response.json()
+
 def signalKAPIFetch(api:str,parameter:str):
+    #get only a single parameter from SK
     response = requests.get(api + parameter.replace(".", "/"))
     return response.json()['value']
