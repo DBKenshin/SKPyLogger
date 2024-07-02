@@ -48,7 +48,7 @@ async def restapi(app):
                     entry_id = cursor.fetchone()
                     cursor.execute("SELECT comment FROM log_entry ORDER BY timestamp DESC LIMIT 1")
                     existingComment = cursor.fetchone()
-                    newComment = existingComment + " |Appended comment " + datetime.datetime.now() + "| " + comment
+                    newComment = existingComment + " [Appended comment " + datetime.datetime.now() + "]: " + comment
                     result = cursor.execute("UPDATE log_entry SET comment = '" + newComment + "' WHERE entry_id = " + entry_id)
                     return jsonify(result)
         return {"error": "Request must be JSON"}, 415
